@@ -6,6 +6,7 @@ import javax.ws.rs.core.Response;
 
 public class ProxyConstants {
 	
+	
 	/** The Constant HEADER_XML. */
 	public static final String HEADER_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>";
 

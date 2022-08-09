@@ -28,12 +28,15 @@ public enum EnumMasterStatusResponse {
 
 	/** The subscriber not exist. */
 	SUBSCRIBER_NOT_EXIST(4, "The subscriber does not exist", "Check that it exists in the database"),
-
+	
 	/** The profile not exist. */
 	PROFILE_NOT_EXIST(5, "The profile does not exist", "Check that it exists in the database"),
 
 	/** The deletion successful. */
 	DELETED_SUCCESSFUL(0, "deleted successful", "Delete actions correctly executed"),
+	
+	/** The deletion successful. */
+	UPDATE_SUCCESSFUL(0, "update successful", "Update actions correctly executed"),
 
 	/** The subscriber exists. */
 	SUBSCRIBER_EXISTS(7, "The subscriber exists", "The subscriber is already registered"),
@@ -41,20 +44,42 @@ public enum EnumMasterStatusResponse {
 	/** The null date. */
 	NULL_DATE(8, "The date cannot be null or empty", "The date cannot be null or empty"),
 
-	/** The invalid formta date. */
+	/** The invalid format for date. */
 	INVALID_FORMTA_DATE(9, "The format date is incorrect", "The format date is incorrect"),
 
 	/** The transaction failed. */
-	TRANSACTION_FAILED(10, "Transaction failed ", "The transaction is not executed correctly"),
-
+	TRANSACTION_FAILED(10, "Transaction failed ", "The transaction is not executed correctly "),
+	
 	/**  Change of number successful. */
-	CHANGE_NUMBER_SUCCESSFUL(10, "Change of number successful", "The transaction change of number was executed correctly"),
+	CHANGE_NUMBER_SUCCESSFUL(0, "Change of number successful", "The transaction change of number was executed correctly  - %s to %s"),
 
 	/** Attributes not found. */
 	ATTRIBUTES_NOT_FOUND(
 			11,
 			"Attributes not found",
-			"The transaction is not executed correctly, entering the attributes associated with the subscriber and the profile");
+			"The transaction is not executed correctly, entering the attributes associated with the subscriber and the profile"),
+
+	/**
+	 * The current subscriber not exist.
+	 */
+	CURRENT_SUBSCRIBER_NOT_EXIST(12, "The current subscriber does not exists", "Check that it exists in the database"),
+	
+	/**
+	 * The new subscriber exists.
+	 */
+	NEW_SUBSCRIBER_EXISTS(13, "The new subscriber exists", "The new subscriber that you want to enter already exists"),
+	
+	/** The profile Type not exist. */
+	PROFILETYPE_NOT_EXIST(14, "The Profile Type does not exist", "Check that it exists in the database"),
+	
+	/** The subscriber Profile not exist. */
+	SUBSCRIBERPROFILE_NOT_EXIST(14, "The SubscriberProfile does not exist", "Check that it exists in the database"),
+	
+	/** Error closing session base. */
+	ERROR_CLOSING_SESSION_BASE(15, "Error closing the session base list.", ""),
+	;
+	
+
 
 	/** The code. */
 	private int code;

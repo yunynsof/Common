@@ -58,6 +58,18 @@ public enum GatewayPolicyErrorCode {
 	/** The gatw pol subscriber type. */
 	GATW_POL_SUBSCRIBER_TYPE(313, "Subscriber TYPE Policy invalid susbcriber."),
 
+	/** The gatw pol subscriber type. */
+	GATW_POL_MASTER_STATUS(314, "Master Status Policy invalid susbcriber."),
+	
+	/** The gatw pol dos policy. */
+	GATW_POL_DOS_POLICY(315, "DOS Policy invalid susbcriber."),
+
+	/** The gatw pol cbs policy. */
+	GATW_POL_CBS_POLICY(316, "CBS Policy invalid susbcriber."),
+	
+	/** Attribute that determine GATW_POL_CHANNEL_POLICY. */
+	GATW_POL_CHANNEL_POLICY(317, "Channel Policy. The channel %s is not allowed for the product %s"),
+
 	/** Constant that defines the code UNKNOWN_ERROR. */
 	UNKNOWN_ERROR(9999, "Unknown error.");
 

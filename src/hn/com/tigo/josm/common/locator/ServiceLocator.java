@@ -5,7 +5,9 @@
  */
 package hn.com.tigo.josm.common.locator;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -14,127 +16,133 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 /**
- * ServiceLocator.
+ * The ServiceLocator class is a singleton responsible to gets the EJB
+ * references and to store it in cache.
  * 
- * Allows to create service instance from a JNDI string
+ * Allows to create service instance from a JNDI string.
  * 
  * @author Harold Castillo
- * @version 1.0
+ * @version 1.5
  * @since 16/10/2014 11:53:36 AM
  */
 public class ServiceLocator {
 
-
-	/** This variable store a self instance. */
-	private static ServiceLocator _serviceLocator;
+	/** Attribute that determine a Constant of REMOVE_SUCCESS_MSG. */
+	private static final String REMOVE_SUCCESS_MSG = "The jndi with name: %s has been removed";
 	
-	
-	/** Attribute that determine _customInstances. */
-	private static Map<String, ServiceLocator> _providerInstances = new HashMap<String, ServiceLocator>();
+	/** Attribute that determine serviceLocator. */
+	private static ServiceLocator serviceLocator;
 
-	/** This variable stores context of a service. */
-	private Context _context = null;
+	/** Attribute that determine jndiReferenceCache. */
+	private Map<String, Object> jndiReferenceCache;
+
+	/** Attribute that determine contextCache. */
+	private Map<String, Context> contextCache;
 
 	/**
-	 * Instantiates a new service locator.
-	 * 
-	 * @throws ServiceLocatorException
-	 *             the service locator exception
+	 * Construct method that instantiates a new service locator.
 	 */
-	private ServiceLocator() throws ServiceLocatorException {
-
-		try {
-			final Properties prop = new Properties();
-			_context = new InitialContext(prop);
-		} catch (NamingException ne) {
-			throw new ServiceLocatorException("Initial context no created " + ne.getMessage(), ne);
-		}
-
+	private ServiceLocator() {
+		jndiReferenceCache = new Hashtable<String, Object>();
+		contextCache = new Hashtable<String, Context>();
 	}
-	
-	
-	
+
 	/**
-	 * Instantiates a new service locator.
+	 * Method responsible to gets the single instance of ServiceLocator.
 	 *
-	 * @param providerURL the provider url
-	 * @throws ServiceLocatorException the service locator exception
+	 * @return single instance of ServiceLocator
 	 */
-	private ServiceLocator(final String providerURL) throws ServiceLocatorException {
-
-		try {
-			
-			final Properties prop = new Properties();
-			prop.setProperty(Context.INITIAL_CONTEXT_FACTORY, "weblogic.jndi.WLInitialContextFactory");
-			prop.setProperty(Context.PROVIDER_URL, "t3://"+providerURL);
-			
-			_context = new InitialContext(prop);
-		} catch (NamingException ne) {
-			throw new ServiceLocatorException("Initial context no created " + ne.getMessage(), ne);
-		}
-
-	}
-	
-	
-
-	/**
-	 * Gets the single instance of ServiceLocator.
-	 * 
-	 * @return An instance of ServiceLocator
-	 * @throws ServiceLocatorException
-	 *             the service locator exception
-	 */
-	public static ServiceLocator getInstance() throws ServiceLocatorException {
-
-		if (_serviceLocator == null) {
-			_serviceLocator = new ServiceLocator();
-		}
-
-		return _serviceLocator;
-	}
-	
-	
-	/**
-	 * Gets the provider instance.
-	 *
-	 * @param providerURL the provider url
-	 * @return the provider instance
-	 * @throws ServiceLocatorException the service locator exception
-	 */
-	public static ServiceLocator getProviderInstance(final String providerURL) throws ServiceLocatorException {
-		
-		ServiceLocator serviceLocator = _providerInstances.get(providerURL);
+	public static ServiceLocator getInstance() {
 		if(serviceLocator == null){
-			serviceLocator = new ServiceLocator(providerURL);
-			_providerInstances.put(providerURL, serviceLocator);
+			ServiceLocator.serviceLocator = new ServiceLocator();
 		}
 		return serviceLocator;
 	}
 
 	/**
-	 * Gets the service from a jni.
-	 * 
-	 * @param <T>
-	 *            The type of generic class
-	 * @param serviceJndi
-	 *            The string from JNDI service
+	 * Method responsible to gets the ejb reference.
+	 *
+	 * @param <T> the generic type
+	 * @param serviceJndi the service jndi
 	 * @return the service
-	 * @throws ServiceLocatorException
-	 *             Exception thrown when service locator fails
+	 * @throws ServiceLocatorException the service locator exception
+	 */
+	public <T> T getService(final String serviceJndi) throws ServiceLocatorException {
+		return this.getService(serviceJndi, null);
+	}
+
+	/**
+	 * Method responsible to gets the EJB reference settings the properties context.
+	 *
+	 * @param <T> the generic type
+	 * @param serviceJndi the service jndi
+	 * @param properties the properties
+	 * @return the service
+	 * @throws ServiceLocatorException the service locator exception
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> T getService(final String serviceJndi) throws ServiceLocatorException {
+	public <T> T getService(final String serviceJndi,
+			final Properties properties) throws ServiceLocatorException {
 
 		T service = null;
 
 		try {
-			service = (T) _context.lookup(serviceJndi);
+
+			// Create the context if not exists.
+			if (!contextCache.containsKey(serviceJndi)) {
+				final Context context = new InitialContext(properties);
+				contextCache.put(serviceJndi, context);
+			}
+
+			// Create the JNDI reference if not exists.
+			if (!jndiReferenceCache.containsKey(serviceJndi)) {
+				service = (T) contextCache.get(serviceJndi).lookup(
+						serviceJndi);
+				jndiReferenceCache.put(serviceJndi, service);
+			}
+
+			service = (T) jndiReferenceCache.get(serviceJndi);
 		} catch (NamingException ne) {
-			throw new ServiceLocatorException("JNDI not found ".concat(serviceJndi), ne);
+			throw new ServiceLocatorException(
+					"JNDI not found ".concat(serviceJndi), ne);
 		}
 
 		return service;
-
+	}
+	
+	/**
+	 * Method responsible to removes the EJB reference of cache.
+	 *
+	 * @param serviceJndi the service jndi
+	 * @return the message
+	 */
+	public String removeJNDICache(final String serviceJndi){
+		contextCache.remove(serviceJndi);
+		jndiReferenceCache.remove(serviceJndi);
+		return String.format(REMOVE_SUCCESS_MSG, serviceJndi);
+	}
+	
+	/**
+	 * Method responsible to gets the JNDI cache list.
+	 *
+	 * @return the JNDI cache list
+	 */
+	public List<String> getJNDICacheList(){
+		List<String> jndiList = new ArrayList<String>();
+		
+		for(Map.Entry<String, Object> entry : jndiReferenceCache.entrySet()){
+			jndiList.add(entry.getKey());			
+		}
+		
+		return jndiList;
+	}
+	
+	/**
+	 * Method responsible to reset all cache.
+	 */
+	public void resetAllCache(){
+		jndiReferenceCache = new Hashtable<String, Object>();
+		contextCache = new Hashtable<String, Context>();
 	}
 
 }

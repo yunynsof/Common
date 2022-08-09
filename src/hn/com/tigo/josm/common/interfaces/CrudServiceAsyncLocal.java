@@ -21,5 +21,12 @@ public interface CrudServiceAsyncLocal {
 	 */
 	public <T> void createAsync(final T t);
 
-	
+	/**
+	 * Creates the async header.
+	 *
+	 * @param <T> the generic type
+	 * @param t the t
+	 */
+	public  <T> void createAsyncHeader(T t);
+		
 }

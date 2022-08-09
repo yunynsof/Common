@@ -9,18 +9,38 @@ import hn.com.tigo.josm.common.configuration.dto.ResponseJOSM;
 import hn.com.tigo.josm.common.exceptions.AdapterException;
 import hn.com.tigo.josm.common.exceptions.enumerators.AdapterErrorCode;
 import hn.com.tigo.josm.common.interfaces.ConfigurationJosmRemote;
+import hn.com.tigo.josm.common.interfaces.MonitoringManagerLocal;
+import hn.com.tigo.josm.common.jmx.event.ConnectionRefusedEvent;
+import hn.com.tigo.josm.common.jmx.event.ConnectionRefusedEventType;
+import hn.com.tigo.josm.common.jmx.event.CreateDriverEvent;
+import hn.com.tigo.josm.common.jmx.event.UseDriverEvent;
+import hn.com.tigo.josm.common.locator.ServiceLocator;
+import hn.com.tigo.josm.common.locator.ServiceLocatorException;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-import javax.naming.Context;
-import javax.naming.InitialContext;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.ejb.EJB;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
 import javax.naming.NamingException;
 import javax.xml.bind.JAXBException;
 
@@ -35,10 +55,7 @@ import org.apache.log4j.Logger;
  * @see 
  * @since 07/10/2014 17:53:31 2014
  */
-public abstract class AbstractAdapter <S> implements Adapter{
-	
-	/** This attribute contains an instance of log4j logger for  AbstractAdapter.  */
-	private final transient Logger LOGGER = Logger.getLogger(this.getClass());
+public abstract class AbstractAdapter <S> implements AbstractAdapterMXBean{
 	
 	/** Attribute that determine the configuration cache timeout. */
 	protected Long _configExpiration;
@@ -72,18 +89,28 @@ public abstract class AbstractAdapter <S> implements Adapter{
 	 */
 	protected long _requestTimeout;
 
-	/** Stores the collection synchronized of active drivers in a map. */
-	protected Map<String, S> _driversPoolMap = new Hashtable<String, S>();
-
 	/** Stores the collection of active drivers in a map. */
-	protected List<S> _driversPoolFreeList = Collections.synchronizedList(new ArrayList<S>());
-	
-	/** Attribute that determine the _bdo adapter config field. */
-	private ConfigurationType _configurationType;
+	private LinkedList<DriverReference<S>> _driversPoolFreeList;
 	
 	/** Attribute that determine the _bdo adapter config field. */
 	protected AdapterConfigType _adapterConfig;
 	
+	
+	/** This attribute contains an instance of log4j logger for  AbstractAdapter.  */
+	private final transient Logger LOGGER = Logger.getLogger(this.getClass());
+	
+	/** Attribute that determine platformMBeanServer. */
+	private MBeanServer _platformMBeanServer;
+	
+	/** Attribute that determine base name for jmx beans. */
+	private final String _jmxConfigBase = "hn.com.tigo.josm.orchestrator.adapter:type=%s";
+	
+	/** Attribute that determine base name for monitoring beans. */
+	private final String _jmxMetricsBase = "hn.tigo.com.josm.{0}:type={1}";
+	
+	/** Attribute that determine the _bdo adapter config field. */
+	private ConfigurationType _configurationType;
+
 	/**
 	 * Attribute that determine the last time configuration date was loaded.
 	 */
@@ -92,14 +119,64 @@ public abstract class AbstractAdapter <S> implements Adapter{
 	/** Attribute that determine the _configuration josm field. */
 	private ConfigurationJosmRemote _configurationJosm;
 	
+	/** Attribute that determine _monitoringManager. */
+	@EJB
+	private MonitoringManagerLocal _monitoringManager;
+	
+	/** The _adapter name. */
+	private String _adapterName;
+	
+	/** The _adapter simple name. */
+	private String _adapterSimpleName;
+	
+	
+	/** The _restart pool. */
+	private boolean _restartPool = false;
+	
+	/** The _driver pool lock. */
+	private Lock _driverPoolLock;
+	
+	/** The _driver version. */
+	private long _driverVersion;
+	
+	/** The _jmx object. */
+	private ObjectName _jmxObject;
+
 	/**
 	 * Instantiates a new abstract adapter.
 	 */
-	protected AbstractAdapter(){
+	public AbstractAdapter(){
 		_username = "";
 		_password = "";
-		loadProperties();
-		initDriver();
+
+		_adapterName = parseName(this.getClass().getCanonicalName());
+		_adapterSimpleName = parseName(this.getClass().getSimpleName());
+		_driversPoolFreeList = new LinkedList<DriverReference<S>>();
+		_driverPoolLock =  new ReentrantLock();
+		_restartPool = true;
+		
+		try {
+			final String name = String.format(_jmxConfigBase, _adapterSimpleName);
+			_jmxObject = new ObjectName(name);
+		} catch (MalformedObjectNameException e) {
+			LOGGER.warn("The JMX ObjectName not has been created: ", e);
+		}
+		
+	}
+	
+	/**
+	 * Parses the name.
+	 *
+	 * @param name the name
+	 * @return the string
+	 */
+	private String parseName(String name){
+		
+		final int index = name.indexOf("_");
+		if(index != -1){
+			name = name.substring(0, index);
+		}
+		return name;
 	}
 	
 	/**
@@ -111,11 +188,7 @@ public abstract class AbstractAdapter <S> implements Adapter{
 	 */
 	public abstract void setAdapterProperties(final AdapterConfigType adapterConfig);
 	
-	/**
-	 * Method responsible to set the adapter configuration properties loaded
-	 * from constants file.
-	 */
-	public abstract void setConstantProperties();
+
 	
 	/**
 	 * Method responsible to set the adapter configuration general properties loaded
@@ -158,16 +231,19 @@ public abstract class AbstractAdapter <S> implements Adapter{
 	 * @throws JAXBException the JAXB exception
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
-	protected void loadConfiguration(final String requestConfig)
-			throws NamingException, JAXBException, IOException {
-		
+	protected void loadConfiguration(final String requestConfig) throws NamingException, JAXBException, IOException {
+
 		_configDate = new Date();
-		if(_configurationJosm==null){
-			final Context context = new InitialContext();
-			_configurationJosm = (ConfigurationJosmRemote) context.lookup(AdapterConstants.CONFIGURATION_JDNI);
+		if (_configurationJosm == null) {
+			try {
+				ServiceLocator serviceLocator = ServiceLocator.getInstance();
+				_configurationJosm = serviceLocator.getService(AdapterConstants.CONFIGURATION_JDNI);
+			} catch (ServiceLocatorException e) {
+				LOGGER.error("Error getting jndi service: " + e.getMessage());
+			}
 		}
 		final ResponseJOSM response = _configurationJosm.getConfiguration(requestConfig);
-		
+
 		_configurationType = response.getConfigurations();
 	}
 	
@@ -176,10 +252,10 @@ public abstract class AbstractAdapter <S> implements Adapter{
 	 */
 	protected void loadProperties(){
 		try {
-			loadConfiguration(this.getClass().getCanonicalName());
+			loadConfiguration(_adapterName);
 			setProperties(_configurationType);
 		} catch (NamingException | JAXBException | IOException e) {
-			LOGGER.error("Constant parameters will be loaded due to the error: " + e.getMessage());
+			LOGGER.error("Constant parameters will be loaded due to the error: " + e.getMessage(), e);
 		}
 	}
 	
@@ -194,36 +270,115 @@ public abstract class AbstractAdapter <S> implements Adapter{
 		if ((_configExpiration == null) || ((new Date().getTime() - _configDate.getTime()) >= _configExpiration)) {
 			loadProperties();
 		}
+		
+		if(_restartPool){
+			initDriverPool();
+		}
 		return _configurationType;
 	}
+	
+	
 
 	/**
-	 * Method that shuts down monitoring threads execution.
+	 * Inits the driver pool.
 	 */
-	public abstract void shutdown();
+	private void initDriverPool() {
 
+		_driverPoolLock.lock();
+			if (_restartPool) {
+				
+				closeDrivers();
+				
+				_driversPoolFreeList.clear();
+				_driverVersion = System.currentTimeMillis();
+			
+				for (int i = 0; i < _driverPoolSize; i++) {
+					_driversPoolFreeList.add(new DriverReference<S>(this, _driverVersion));
+				}
+			}
+			_restartPool = false;
+			_driverPoolLock.unlock();
+			registerDriverEvent();
+			registerUseDrivers();
+			
+		
+	}
+	
+	
+	
+	/**
+	 * Close drivers.
+	 */
+	public void closeDrivers() {
+
+		try {
+			for (DriverReference<S> ref : _driversPoolFreeList) {
+				if (ref.getDriver() instanceof Closeable) {
+					((Closeable) ref.getDriver()).close();
+				}
+			}
+		} catch (AdapterException | IOException e) {
+			LOGGER.error("Closing Drivers Failed: " + e.getMessage(), e);
+
+		}
+	}
+	
+	
 	/**
 	 * Method that generalizes the driver retrieval logic.
 	 *
 	 * @return Returns an adapter's driver
 	 * @throws AdapterException the adapter exception
 	 */
-	public S getDriver() throws AdapterException {
-		S sessionObject = null;
-		if (!_driversPoolFreeList.isEmpty()) {
-			sessionObject = _driversPoolFreeList.get(0);
-			_driversPoolFreeList.remove(sessionObject);
-			LOGGER.info("Assign existing session");
-		} else if (_driversPoolMap.size() >= _driverPoolSize) {
-			throw new AdapterException(AdapterErrorCode.MAX_SESSION_ERROR.getError(), "No available drivers");
-		} else {
-			sessionObject = createDriver();
-			_driversPoolMap.put(String.valueOf(sessionObject.hashCode()), sessionObject);
-			LOGGER.info("It has created new " + sessionObject.getClass().getSimpleName());
+	public DriverReference<S> getDriver() throws AdapterException {
+		
+		
+		DriverReference<S> sessionObject =  null;
+		_driverPoolLock.lock();
+		try{
+			if(!_driversPoolFreeList.isEmpty()){
+				sessionObject = _driversPoolFreeList.pop();
+			}else{
+				registerConnectionRefused(ConnectionRefusedEventType.DRIVER);
+				throw new AdapterException(AdapterErrorCode.MAX_SESSION_ERROR.getError(),  "No available drivers on "+_adapterSimpleName);
+			}
+			
+		} finally{
+			_driverPoolLock.unlock();
+			registerUseDrivers();
 		}
-
+		
+	
+		
 		return sessionObject;
 	}
+	
+	
+	/**
+	 * Tells the adapter this driver is free now.
+	 *
+	 * @param driverObject the driver object
+	 */
+	public void freeDriver(final DriverReference<S> driverObject) {
+		
+		_driverPoolLock.lock();
+		try {
+			final long freeVersion = driverObject.getVersion();
+			if(_driverVersion == freeVersion){
+				_driversPoolFreeList.push(driverObject);
+			}else{
+				LOGGER.warn("Reset driver pool event detected, discarding driver "+_adapterSimpleName);
+			}
+		} finally {
+			_driverPoolLock.unlock();
+			registerUseDrivers();
+		}
+
+		
+
+	}	
+		
+			
 	
 	/**
 	 * Creates a new adapter driver instance.
@@ -239,60 +394,13 @@ public abstract class AbstractAdapter <S> implements Adapter{
 	 *
 	 * @return the pool drivers free list size
 	 */
-	@Override
 	public int getPoolDriversFreeListSize(){
 		return _driversPoolFreeList.size();
 	}
 	
-	/**
-	 * Gets the pool driver free list size.
-	 *
-	 * @return the pool driver free list size
-	 */
-	@Override
-	public int getDriversPoolSize(){
-		return _driversPoolMap.size();
-	}
 	
-	/**
-	 * Tells the adapter this driver is free now.
-	 *
-	 * @param driverObject the driver object
-	 */
-	public void freeDriver(final S driverObject){
-		if(!_driversPoolFreeList.contains(driverObject)){
-			_driversPoolFreeList.add(driverObject);
-		}
-	}
-	
-	/**
-	 * Reserves a driver for exclusive use.
-	 *
-	 * @param driverObject the driver object
-	 */
-	public void reserveDriver(final S driverObject) {
-		_driversPoolFreeList.remove(driverObject);
-	}
-	
-	/**
-	 * Removes the driver pool.
-	 *
-	 * @param driver the driver
-	 */
-	public void removeDriverPool(final S driver){
-		_driversPoolMap.remove(String.valueOf(driver.hashCode()));
-	}
 
-	/**
-	 * Checks if a driver is free.
-	 *
-	 * @param driverObject the driver object
-	 * @return true, if is driver free
-	 */
-	public boolean isDriverFree(final S driverObject){
-		return _driversPoolFreeList.contains(driverObject);
-	}
-	
+		
 	/**
 	 * Gets a parameter value from a parameter name.
 	 * 
@@ -389,20 +497,7 @@ public abstract class AbstractAdapter <S> implements Adapter{
 		return parametersMap;
 	}
 	
-	/**
-	 * Method responsible to initialize the BDO drivers.
-	 */
-	protected void initDriver() {
-		try {
-			
-			S sessionObject = createDriver(); 
-			_driversPoolMap.put(String.valueOf(sessionObject.hashCode()), sessionObject);
-			_driversPoolFreeList.add(sessionObject);
-		} catch (AdapterException e) {
-			LOGGER.error("Error in creating the BdoDriver instance");
-		}
-		
-	}
+	
 
 	/**
 	 * Method responsible to gets the config expiration.
@@ -447,7 +542,6 @@ public abstract class AbstractAdapter <S> implements Adapter{
 	 * @return the _requestTimeout
 	 */
 	public long getRequestTimeout() {
-
 		return _requestTimeout;
 	}
 
@@ -459,5 +553,128 @@ public abstract class AbstractAdapter <S> implements Adapter{
 	public AdapterConfigType getAdapterConfig() {
 		return _adapterConfig;
 	}
+	
+	
+	
+		
+	 /**
+     * Register in jmx. 
+     * This method register a bean in the jmx server.
+     */
+	@PostConstruct
+	public void registerInJMX() {
+		
+		try {
+			_platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+			
+			if(_platformMBeanServer.isRegistered(_jmxObject)){
+				_platformMBeanServer.unregisterMBean(_jmxObject);
+			}
+			_platformMBeanServer.registerMBean(this, _jmxObject);
+			
+			getProperties();
+			
+		} catch (InstanceAlreadyExistsException	| MBeanRegistrationException | NotCompliantMBeanException | InstanceNotFoundException e) {
+			LOGGER.error("Problem during registration of "+_adapterName+" into JMX:", e);
+			throw new IllegalStateException("Problem during registration of "+_adapterSimpleName+" into JMX:" + e, e);
+		}
+		
 
+	}
+
+       
+    
+    /**
+     * Unregister from jmx server.
+     */
+    @PreDestroy
+    public void unregisterFromJMX() {
+		try {
+			final Set<ObjectName> objectNames = _platformMBeanServer.queryNames(_jmxObject, null);
+			
+			for(ObjectName obname : objectNames){
+				if(obname == _jmxObject){
+					_platformMBeanServer.unregisterMBean(_jmxObject);
+					
+					final String name = MessageFormat.format(_jmxMetricsBase, _adapterSimpleName, _adapterSimpleName);
+					final ObjectName jmxMetricsObjet = new ObjectName(name);
+					
+					_platformMBeanServer.unregisterMBean(jmxMetricsObjet);
+				}
+			}
+
+		} catch (MBeanRegistrationException | InstanceNotFoundException | MalformedObjectNameException e) {
+			throw new IllegalStateException("Problem during unregistration of "	+ _adapterSimpleName + " into JMX:" + e, e);
+		}
+
+	}
+    
+    /**
+     * Gets the adapter name.
+     *
+     * @return the adapter name
+     */
+    public String getAdapterName(){
+    	return _adapterName;
+    }
+    
+    /**
+     * Gets the adapter simple name.
+     *
+     * @return the adapter simple name
+     */
+    public String getAdapterSimpleName(){
+    	return _adapterSimpleName;
+    }
+    
+    
+    /* (non-Javadoc)
+     * @see hn.com.tigo.josm.common.adapter.AbstractAdapterMXBean#resetConfiguration()
+     */
+    @Override
+    public void resetConfiguration(){
+    	_restartPool = true;
+    	_configExpiration = null;
+    	
+    }
+    
+    
+    /**
+     * Method responsible to register total drivers on JMX event monitor.
+     */
+    public void registerDriverEvent(){
+    	
+		final CreateDriverEvent event = new CreateDriverEvent();
+		event.setComponent(_adapterSimpleName);
+		event.setObjectName(_adapterSimpleName);
+		event.setTotalDriver(_driverPoolSize);
+		_monitoringManager.receiveEvent(event);
+	}
+	
+    
+	/**
+	 * Method responsible to register use drivers in JMX monitoring.
+	 */
+    public void registerUseDrivers(){
+		final UseDriverEvent event = new UseDriverEvent();
+		event.setComponent(_adapterSimpleName);
+		event.setObjectName(_adapterSimpleName);
+		event.setIdlesDrivers(getPoolDriversFreeListSize());
+		_monitoringManager.receiveEvent(event);
+	}
+	
+	
+	
+	/**
+	 * Register connection refused.
+	 *
+	 * @param type the type
+	 */
+	public void registerConnectionRefused(final ConnectionRefusedEventType type){
+		final ConnectionRefusedEvent event = new ConnectionRefusedEvent(type);
+		event.setComponent(_adapterSimpleName);
+		event.setObjectName(_adapterSimpleName);
+		_monitoringManager.receiveEvent(event);
+	}
+	
 }

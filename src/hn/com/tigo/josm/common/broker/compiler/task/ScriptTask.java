@@ -22,6 +22,9 @@ import javax.script.ScriptException;
  */
 public class ScriptTask extends AbstractElement {
 
+	/** Attribute that determine a Constant of serialVersionUID. */
+	private static final long serialVersionUID = 1L;
+
 	/** Attribute that determine the _script field. */
 	private String _script;
 	
@@ -50,6 +53,7 @@ public class ScriptTask extends AbstractElement {
 	public LinkedList<AbstractElement> execute(ScriptEngine engine) throws BPMNExecutionException{
 		try {
 			engine.eval(_script);
+			//_msgLogger.append(String.format(MSG_BASE, _name, _script));
 		} catch (ScriptException e) {
 			throw new BPMNExecutionException(OrchestratorErrorCode.SCRIPT_TASK_ERROR.getError(), e.getMessage(), e);
 		}

@@ -76,7 +76,7 @@ public enum EnumTest {
 	private static final String C_P_JOSM_JPA_PASSWORD = "j0sM";
 
 	/** Constant that defines C_P_JOSM_JPA_JDBC_URL. */
-	private static final String C_P_JOSM_JPA_JDBC_URL = "jdbc:oracle:thin:@192.168.159.52:1521/josmdb.celtel.net";
+	private static final String C_P_JOSM_JPA_JDBC_URL ="jdbc:oracle:thin:@192.168.159.52:1521/josmdb.celtel.net"; //"jdbc:oracle:thin:@192.168.160.91:1503/cpe3dbSHARED.celtel.net";
 
 	/** Constant that defines C_P_JOSM_JPA_JDBC_DRIVER. */
 	private static final String C_P_JOSM_JPA_JDBC_DRIVER = "oracle.jdbc.OracleDriver";

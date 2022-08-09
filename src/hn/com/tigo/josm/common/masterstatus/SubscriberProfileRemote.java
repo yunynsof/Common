@@ -5,9 +5,10 @@
  */
 package hn.com.tigo.josm.common.masterstatus;
 
-import hn.com.tigo.josm.common.exceptions.ProfileException;
+import hn.com.tigo.josm.common.exceptions.MasterStatusException;
+import hn.com.tigo.josm.common.exceptions.ValidationException;
 import hn.com.tigo.josm.common.profile.Attributes;
-import hn.com.tigo.josm.common.profile.ProfileResponse;
+import hn.com.tigo.josm.common.profile.MasterStatusResponse;
 
 import javax.ejb.Remote;
 import javax.jws.WebMethod;
@@ -39,12 +40,13 @@ public interface SubscriberProfileRemote {
 	 *            the profile id, is the identifier of the table
 	 *            <code>PROFILE</code> in the schema <code>MASTER STATUS</code>
 	 * @return the profile information
-	 * @throws ProfileException
+	 * @throws MasterStatusException
 	 *             the profile exception
+	 * @throws ValidationException 
 	 */
 	@WebMethod
-	ProfileResponse getSubscriberProfile(@WebParam(name = "subscriber") String subscriber,
-			@WebParam(name = "profile") String profile) throws ProfileException;
+	MasterStatusResponse getSubscriberProfile(@WebParam(name = "subscriber") String subscriber,
+			@WebParam(name = "profile") String profile) throws MasterStatusException, ValidationException;
 
 	/**
 	 * Get all attributes associated with a profile and a subscriber.
@@ -55,12 +57,13 @@ public interface SubscriberProfileRemote {
 	 *            the profile id, is the identifier of the table
 	 *            <code>PROFILE</code> in the schema <code>MASTER STATUS</code>
 	 * @return the profile information
-	 * @throws ProfileException
+	 * @throws MasterStatusException
 	 *             the profile exception
+	 * @throws ValidationException 
 	 */
 	@WebMethod
-	ProfileResponse getSubscriberProfileHistory(@WebParam(name = "subscriber") String subscriber,
-			@WebParam(name = "profile") String profile) throws ProfileException;
+	MasterStatusResponse getSubscriberProfileHistory(@WebParam(name = "subscriber") String subscriber,
+			@WebParam(name = "profile") String profile) throws MasterStatusException, ValidationException;
 
 	/**
 	 * Create attributes associated with a profile and a subscriber..
@@ -71,13 +74,14 @@ public interface SubscriberProfileRemote {
 	 * @param transactionId            the transaction id
 	 * @param attributes            the attributes of the profile
 	 * @return the profile information
-	 * @throws ProfileException             the profile exception
+	 * @throws MasterStatusException             the profile exception
+	 * @throws ValidationException 
 	 */
 	@WebMethod
-	ProfileResponse createSubscriberProfile(@WebParam(name = "subscriber") String subscriber,
+	MasterStatusResponse createSubscriberProfile(@WebParam(name = "subscriber") String subscriber,
 			@WebParam(name = "profile") String profile,
 			@WebParam(name = "transactionId") String transactionId,
-			@WebParam(name = "attributes") Attributes attributes) throws ProfileException;
+			@WebParam(name = "attributes") Attributes attributes) throws MasterStatusException, ValidationException;
 
 	/**
 	 * Get the attributes associated with a profile and a subscriber from a date
@@ -90,13 +94,14 @@ public interface SubscriberProfileRemote {
 	 * @param date
 	 *            the date
 	 * @return the profile date
-	 * @throws ProfileException
+	 * @throws MasterStatusException
 	 *             the profile exception
+	 * @throws ValidationException 
 	 */
 	@WebMethod
-	ProfileResponse getSubscriberProfileFromDate(@WebParam(name = "subscriber") final String subscriber,
+	MasterStatusResponse getSubscriberProfileFromDate(@WebParam(name = "subscriber") final String subscriber,
 			@WebParam(name = "profile") final String profile, @WebParam(name = "date") final String date)
-			throws ProfileException;
+			throws MasterStatusException, ValidationException;
 
 	/**
 	 * Gets the subscriber profile from date by transaction.
@@ -105,11 +110,30 @@ public interface SubscriberProfileRemote {
 	 * @param profile the profile
 	 * @param date the date
 	 * @return the subscriber profile from date by transaction
-	 * @throws ProfileException the profile exception
+	 * @throws MasterStatusException the profile exception
+	 * @throws ValidationException 
 	 */
 	@WebMethod
-	ProfileResponse getSubscriberProfileFromDateByTransaction(@WebParam(name = "subscriber") final String subscriber,
+	MasterStatusResponse getSubscriberProfileFromDateByTransaction(@WebParam(name = "subscriber") final String subscriber,
 			@WebParam(name = "profile") final String profile, @WebParam(name = "date") final String date)
-			throws ProfileException;
+			throws MasterStatusException, ValidationException;
+
+	/**
+	 * Method that allows deletes in the SUBSCRIBER_PROFILE table by the
+	 * parameters exposed.
+	 *
+	 * @param subscriber
+	 *            the subscriber number
+	 * @param profile
+	 *            the profile id
+	 * @param transactionId
+	 *            the transaction id
+	 * @return the profile response
+	 * @throws ValidationException 
+	 */
+	@WebMethod
+	MasterStatusResponse deleteSubscriberProfile(@WebParam(name = "subscriber") String subscriber,
+			@WebParam(name = "profile") String profile, @WebParam(name = "transactionId") String transactionId)
+			throws MasterStatusException, ValidationException;
 
 }

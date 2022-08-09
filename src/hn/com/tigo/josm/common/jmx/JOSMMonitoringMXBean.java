@@ -46,6 +46,11 @@ public interface JOSMMonitoringMXBean {
 	 * Increment failed messages.
 	 */
 	void incrementFailedMessages();
+	
+	/**
+	 * Increment success messages.
+	 */
+	void incrementSuccessMessages();
 
 	/**
 	 * Gets the last transaction time millis.
@@ -79,6 +84,19 @@ public interface JOSMMonitoringMXBean {
 	 */
 	void reset();
 	
+	/**
+	 * Gets the tps.
+	 *
+	 * @return the max tps
+	 */
+	long getMaxTPS();
+	
+	/**
+	 * Gets the max transaction time millis.
+	 *
+	 * @return the max transaction time millis
+	 */
+	long getMaxLastTransactionTimeMillis();
 	
 	
 

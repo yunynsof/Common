@@ -28,7 +28,7 @@ public class UseDriverEvent extends JOSMEvent implements Serializable  {
 	 * Instantiates a new use driver event.
 	 */
 	public UseDriverEvent(){
-		super(MonitoringEventType.USE_DRIVER);
+		super(MonitoringEventType.USE_DRIVER, MXBeanType.DRIVER);
 	}
 	
 	/**

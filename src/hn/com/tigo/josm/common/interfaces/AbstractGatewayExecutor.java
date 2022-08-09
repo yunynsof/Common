@@ -3,7 +3,14 @@ package hn.com.tigo.josm.common.interfaces;
 import hn.com.tigo.josm.common.dto.MetaOrderRequest;
 import hn.com.tigo.josm.common.exceptions.GatewayException;
 import hn.com.tigo.josm.common.interfaces.producer.InterfaceFactory;
+import hn.com.tigo.josm.common.locator.ServiceLocator;
+import hn.com.tigo.josm.common.locator.ServiceLocatorException;
+import hn.com.tigo.josm.common.order.OrderResponse;
+import hn.com.tigo.josm.common.order.OrderResponseDetail;
+import hn.com.tigo.josm.common.order.ParameterType;
 import hn.com.tigo.josm.common.util.ProxyUtil;
+
+import java.util.List;
 
 import javax.ws.rs.core.Response;
 
@@ -14,8 +21,8 @@ import org.apache.log4j.Logger;
  * 
  * @author Jhon Cortes <mailto:jcortesg@stefaninicolombia.com />
  * @version
- * @param <T>
- *            the generic type
+ * @param <T> the generic type
+ * @param <W> the generic type
  * @since 24-nov-2014 14:48:20 2014
  */
 public abstract class AbstractGatewayExecutor<T,W> {
@@ -23,9 +30,9 @@ public abstract class AbstractGatewayExecutor<T,W> {
 	/** Attribute that determine log. */
 	private static final transient Logger LOGGER = Logger.getLogger(AbstractGatewayExecutor.class);
 
-	/** The _jndi gateway. */
-	private static String _jndiGateway;
 
+	/** The Constant BPMN_RESPONSE_MESSAGE. */
+	private static final String BPMN_RESPONSE_MESSAGE = "BPMN_RESPONSE_MESSAGE"; 
 	/**
 	 * The Constant RESPONSE_ERROR.
 	 */
@@ -43,7 +50,6 @@ public abstract class AbstractGatewayExecutor<T,W> {
 	 * @param jndiGateway the jndi gateway
 	 */
 	public AbstractGatewayExecutor(final String jndiGateway) {
-		_jndiGateway = jndiGateway;
 	}
 
 	
@@ -57,7 +63,6 @@ public abstract class AbstractGatewayExecutor<T,W> {
 	public Response executeGateway(final W request, final T proxyGenericRequest) {
 		Response currentResponse;
 		currentResponse = executeRequest(request, proxyGenericRequest);
-		LOGGER.info(currentResponse.getEntity().toString());
 		return currentResponse;
 	}
 
@@ -75,23 +80,44 @@ public abstract class AbstractGatewayExecutor<T,W> {
 
 	private Response executeRequest(final W request, final T proxyGenericRequest) {
 
-		final String jdniMsg = "Failed to initialize the ejb jndi Gateway.";
-		Response currentResponse = ProxyUtil.createResponse(RESPONSE_CODE_ERROR, jdniMsg);
+		Response currentResponse = ProxyUtil.createResponse(RESPONSE_CODE_OK, "");
 		final MetaOrderRequest metaOrderRequest = buildMetaOrderRequest(request, proxyGenericRequest);
 
 		try {
-			InterfaceFactory interfaceFactory = new InterfaceFactory();
-			final GatewayRemote gatewayRemote = interfaceFactory.getGatewayRemote();
-			gatewayRemote.executeOrder(metaOrderRequest);
-			currentResponse = OK_RESPONSE;
-
-		} catch (GatewayException e) {
-			String message = e.getMessage() == null ? "" : e.getMessage();
-			LOGGER.error(message, e);
+			final ServiceLocator serviceLocator = ServiceLocator.getInstance();
+			final GatewayRemote gatewayRemote  = serviceLocator.getService(InterfaceFactory.GATEWAY_REMOTE);
+			final OrderResponse orderResponse = gatewayRemote.executeOrder(metaOrderRequest);
+			currentResponse = createProxyResponse(orderResponse);
+		} catch (GatewayException | ServiceLocatorException e) {
+			final String message = e.getMessage() == null ? "" : e.getMessage();
 			currentResponse = ProxyUtil.createResponse(RESPONSE_CODE_ERROR,message);
 		} 
+
 		return currentResponse;
 
+	}
+
+
+	/**
+	 * Creates the proxy response.
+	 *
+	 * @param orderResponse the order response
+	 * @return the response
+	 */
+	private Response createProxyResponse(final OrderResponse orderResponse) {
+		Response currentResponse;
+		currentResponse = ProxyUtil.createResponse(RESPONSE_CODE_OK,orderResponse.getMessage());
+		final List<OrderResponseDetail> orderResponseDetailList = orderResponse.getOrderResponseDetail();
+		if(orderResponseDetailList.size()>0){
+			final List<ParameterType> paraArray = orderResponseDetailList.get(0).getParameters().getParameter();
+			for(ParameterType paType : paraArray){
+				if(paType.getName().equals(BPMN_RESPONSE_MESSAGE)){
+					 currentResponse = ProxyUtil.createResponse(RESPONSE_CODE_OK,paType.getValue().toString());
+					 break;
+				}
+			}
+		}
+		return currentResponse;
 	}
 	
 	

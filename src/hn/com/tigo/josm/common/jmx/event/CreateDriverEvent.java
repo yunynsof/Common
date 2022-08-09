@@ -22,7 +22,7 @@ public class CreateDriverEvent extends JOSMEvent implements Serializable {
 	private long _totalDriver;
 	
 	public CreateDriverEvent(){
-		super(MonitoringEventType.CREATE_DRIVER);
+		super(MonitoringEventType.CREATE_DRIVER, MXBeanType.DRIVER);
 	}
 
 

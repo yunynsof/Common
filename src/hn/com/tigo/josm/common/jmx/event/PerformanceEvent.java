@@ -24,9 +24,25 @@ public class PerformanceEvent extends JOSMEvent implements Serializable {
 	private long _transactionInMillis;
 	
 	
+	/**
+	 * Instantiates a new performance event.
+	 */
 	public PerformanceEvent(){
 		super(MonitoringEventType.PERFORMANCE);
 	}
+	
+	
+	/**
+	 * Instantiates a new performance event.
+	 *
+	 * @param mxBeanType the mx bean type
+	 */
+	public PerformanceEvent(final MXBeanType mxBeanType){
+		super(MonitoringEventType.PERFORMANCE, mxBeanType);
+	}
+	
+	
+	
 	
 	/**
 	 * Sets the result of the event.

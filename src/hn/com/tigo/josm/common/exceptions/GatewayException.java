@@ -5,6 +5,8 @@
 */
 package hn.com.tigo.josm.common.exceptions;
 
+import javax.xml.ws.WebFault;
+
 
 /**
  * GatewayException.
@@ -14,6 +16,7 @@ package hn.com.tigo.josm.common.exceptions;
  * @see 
  * @since 21/10/2014 10:38:26 AM 2014
  */
+@WebFault(name = "GatewayException", targetNamespace="http://www.tigo.com.hn/josm/common/exceptions/Gateway/Exception/V1")
 public class GatewayException extends AbstractException {
 
 	/** Attribute that determine a Constant of serialVersionUID. */

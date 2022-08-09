@@ -6,6 +6,7 @@ public enum TaskType {
 	SCRIPT,
 	SERVICE,
 	EXCLUSIVE_GATEWAY,
+	END_EVENT_ERROR,
 	SUBPROCESS
 	
 }

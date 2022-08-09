@@ -44,13 +44,20 @@ public final class AdapterConstants {
 	public static final String ALFANUMERIC = "^[a-zA-Z0-9\\_]+$";
 	
 	/** ALFANUMERIC constant of type string. */
-	public static final String ALFANUMERIC_EXTENDED = "^[a-zñA-ZÑ0-9\\_\\/\\-\\s\\=\\>\\<\\!\\¡\\:\\.\\,\\;\\*\\¿\\?\\#\\+]+$";
+	public static final String ALFANUMERIC_EXTENDED = "^[a-zñA-ZÑ0-9\\_\\/\\-\\s\\=\\>\\<\\!\\¡\\:\\.\\&\\,\\;\\*\\¿\\?\\#\\+]+$";
 	
 	/** ALFANUMERIC ALL constant of type string. */
-	public static final String ALFANUMERIC_ALL = "(.*)";
+	public static final String ALFANUMERIC_ALL = "(.*?)|(.*?(\\n))+.*?";
 	
 	/** Attribute that determine a Constant of BOOLEAN. */
-	public static final String BOOLEAN = "(true)|(false)";
+	public static final String BOOLEAN = "([T,t][R,r][U,u][E,e])|([F,f][A,a][L,l][S,s][E,e])";
+	
+	/** Attribute that determine a Constant of IP_V4. */
+	public static final String IP_V4 = "^(?=\\d+\\.\\d+\\.\\d+\\.\\d+$)(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\.?){4}$";
+	
+	/** Attribute that determine a Constant of ALL. */
+	public static final String ALL = null;
+	
 	
 	/** Attribute that determine a constant for new line character. */
 	public static final String NEW_LINE = "\n";
@@ -84,7 +91,13 @@ public final class AdapterConstants {
 	public static final String XML_DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss";
 	
 	/** Attribute that determine a Constant of XML_DATE_PATTERN_2. */
-	public static final String XML_DATE_PATTERN_MILL = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+	public static final String XML_DATE_PATTERN_MILL = "yyyy-MM-dd'T'HH:mm:ss";
+	
+	/** Attribute that determine a Constant of FAULT_ERROR_CODE. */
+	public static final String FAULT_ERROR_CODE = "/Fault/detail/ErrorCode";
+	
+	/** Attribute that determine a Constant of FAULT_ERROR_DESC. */
+	public static final String FAULT_ERROR_DESC = "/Fault/detail/ErrorDescription";
 	
 	/**
 	 * Instantiates a new adapter constants.

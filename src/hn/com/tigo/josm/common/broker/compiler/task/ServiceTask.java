@@ -16,15 +16,14 @@ import hn.com.tigo.josm.common.exceptions.AdapterException;
 import hn.com.tigo.josm.common.exceptions.BPMNExecutionException;
 import hn.com.tigo.josm.common.exceptions.enumerators.EnumValidateResponse;
 import hn.com.tigo.josm.common.exceptions.enumerators.OrchestratorErrorCode;
+import hn.com.tigo.josm.common.locator.ServiceLocator;
+import hn.com.tigo.josm.common.locator.ServiceLocatorException;
 
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
@@ -40,24 +39,38 @@ import org.apache.log4j.Logger;
  */
 public class ServiceTask extends AbstractElement {
 	
+	/** Attribute that determine a Constant of serialVersionUID. */
+	private static final long serialVersionUID = 1L;
+
 	/** This attribute contains an instance of log4j logger for  Engine.  */
 	private static final transient Logger LOGGER = Logger.getLogger(ServiceTask.class);
 
 	/** The Constant TRANSACTION_ID. */
 	private static final String TRANSACTION_ID = "transactionId";
-
-	/** Attribute that determine the constant invalid parameter message. */
-	private static final String MSG_INVALID_PARAMETER = "Parameter <%s> value is invalid";
-	
 	
 	/** Attribute that determine the constant invalid parameter message. */
-	private static final String MSG_ERROR_EVAL_EXPRESSION = "Error getting from context <%s>  result  <%s>";
+	private static final String MSG_ERROR_EVAL_EXPRESSION = "<%s> : Error getting from context <%s>  result  <%s>";
 	
 	/** Attribute that determine the Constant RESPONSE_DESCRIPTION. */
 	private static final String RESPONSE_DESCRIPTION = "responseDescription";
+	
+	/** The Constant PARAMETER_ERROR. */
+	private static final String PARAMETER_ERROR = "Parameter defined in input definition not found in context in ServiceTask: <%s>  on variable: <%s>  on Expression: <%s>";
+	
+	/** The Constant PARAMETER_EXPRESSION_NULL_ERROR. */
+	private static final String PARAMETER_EXPRESSION_NULL_ERROR = "Expression is null for ServiceTask : <%s> on parameter : <%s> "; 
+
+	/** The Constant PARAMETER_EXPRESSION_SERVICE_TASK. */
+	private static final String PARAMETER_EXPRESSION_SERVICE_TASK = "Service Task ( %s ) failed: %s  platformError: %s"; 
 
 	/** Attribute that determine the Constant RESPONSE_CODE. */
 	private static final String RESPONSE_CODE = "responseCode";
+	
+	/** Attribute that determine the Constant RESPONSE_DESCRIPTION. */
+	private static final String PLATFORM_ERROR_DESCRIPTION = "platformErrorDescription";
+
+	/** Attribute that determine the Constant RESPONSE_CODE. */
+	private static final String PLATFORM_ERROR_CODE = "platformErrorCode";
 	
 	/** Attribute that determine jndjndiName. */
 	private String jndiName;
@@ -68,10 +81,6 @@ public class ServiceTask extends AbstractElement {
 	/** Attribute that determine _outputData. */
 	private Map<String, DataParameter> _outputData;
 
-	/** The _task response. */
-	private TaskResponseType _taskResponse;
-	
-	
 	/** The _implementation name. */
 	private String _implementationName;
 	/**
@@ -108,26 +117,34 @@ public class ServiceTask extends AbstractElement {
 	 * @throws BPMNExecutionException the bpmn exception
 	 */
 	@Override
-	public LinkedList<AbstractElement> execute(final ScriptEngine engine) throws BPMNExecutionException{
+	public LinkedList<AbstractElement> execute(final ScriptEngine engine) throws BPMNExecutionException {
+
 		final ScriptContext context = engine.getContext();
 		Task taskInterface = null;
 		final TaskRequestType taskRequestType = createRequest(engine);
-
+		TaskResponseType taskResponse  = new TaskResponseType();
+		
 		try {
-			final Context ctx = new InitialContext();
-			taskInterface = (Task) ctx.lookup(jndiName);
-		} catch (NamingException e) {
-			LOGGER.error("Service Task ( ".concat(_name).concat(" ) failed: ").concat(e.getMessage()));
-			throw new BPMNExecutionException(EnumValidateResponse.JNDI_NAME_NOT_FOUND.getCode(), e.getMessage(), e);
-		}
-
-		try {
-			_taskResponse = taskInterface.executeTask(taskRequestType);
+			final ServiceLocator serviceLocator = ServiceLocator.getInstance();
+			taskInterface = serviceLocator.getService(jndiName);
+			taskResponse = taskInterface.executeTask(taskRequestType);
 		} catch (AdapterException e) {
-			LOGGER.error("Service Task ( ".concat(_name).concat(" ) failed: ").concat(e.getMessage()));
-			throw new BPMNExecutionException(e.getErrorCode(), e.getMessage(), e);
+			final String platformError  = e.getPlatformError() != null ? e.getPlatformError() : "";
+			saveResponse(context, PLATFORM_ERROR_CODE, PLATFORM_ERROR_DESCRIPTION, e.getPlatformError(),
+					e.getMessage(),null);
+			final String message = String.format(PARAMETER_EXPRESSION_SERVICE_TASK, _name,e.getMessage(),platformError);
+			LOGGER.error(message);
+			throw new BPMNExecutionException(e.getErrorCode(), e.getMessage(), e.getPlatformError(), e);
+		} catch (ServiceLocatorException e) {
+			final String message = "Service Task ( %s ) failed: %s";
+			LOGGER.error(String.format(message, _name,e.getMessage()),e);
+			throw new BPMNExecutionException(EnumValidateResponse.JNDI_NAME_NOT_FOUND.getCode(),
+					e.getMessage(), e);
 		}
-		saveResponse(context);
+
+		saveResponse(context, RESPONSE_CODE, RESPONSE_DESCRIPTION, taskResponse.getResponseCode(),
+				taskResponse.getResponseDescription(),taskResponse);
+
 		return null;
 	}
 	
@@ -145,7 +162,7 @@ public class ServiceTask extends AbstractElement {
 		
 		final Set<String> key = _inputData.keySet();
 		DataParameter from;
-		String contextValue;
+		Object contextValue;
 		String paramName;
 		ParameterType pt;
 		
@@ -154,32 +171,39 @@ public class ServiceTask extends AbstractElement {
 			from = _inputData.get(to);
 			final String expression = from.getExpression();
 			
+			if(expression == null){
+				final String errorMessage = String.format(PARAMETER_EXPRESSION_NULL_ERROR, _name,to);
+				LOGGER.error(errorMessage);
+				throw new BPMNExecutionException(
+						OrchestratorErrorCode.BPMN_ERROR.getError(),errorMessage);
+			}
+			
 			if(from.getType().equals(ExpressionType.VARIABLE_NAME)){
 				contextValue = context.getAttribute(expression).toString();
 				paramName = expression;
 			}else{
 				try {
-					contextValue = engine.eval(expression).toString();
+					contextValue = engine.eval(expression);
 					paramName = to;
 				}
 				catch (ScriptException e) {
+					final String errorMessage = String.format(MSG_ERROR_EVAL_EXPRESSION,_name, expression, e.getMessage());
+					LOGGER.error(errorMessage);
 					throw new BPMNExecutionException(
-							OrchestratorErrorCode.BPMN_ERROR.getError(),
-							String.format(MSG_ERROR_EVAL_EXPRESSION, expression, e.getMessage()));
+							OrchestratorErrorCode.BPMN_ERROR.getError(),errorMessage, e);
 				}
 			}
 
-			LOGGER.info("context paramName: "+paramName+" paramValue: "+ contextValue);
 			if(contextValue == null){
-				LOGGER.error("Parameter defined in input definition not found in context in ServiceTask".concat(_name));
+				final String errorMessage = String.format(PARAMETER_ERROR, _name,to,expression); 
+				LOGGER.error(errorMessage);
 				throw new BPMNExecutionException(
-						OrchestratorErrorCode.BPMN_ERROR.getError(),
-						String.format(MSG_INVALID_PARAMETER, from));
+						OrchestratorErrorCode.BPMN_ERROR.getError(),errorMessage);
 			}
 			
 			pt = new ParameterType();
 			pt.setName(to);
-			pt.setValue(contextValue);
+			pt.setValue(contextValue.toString());
 			parameterArray.getParameter().add(pt);
 			
 		}
@@ -193,35 +217,44 @@ public class ServiceTask extends AbstractElement {
 	}
 	
 	
+	
 	/**
 	 * Save response.
 	 *
 	 * @param context the context
+	 * @param responseCode the response code
+	 * @param responseDescription the response description
+	 * @param codeValue the code value
+	 * @param descriptionValue the description value
+	 * @param taskresponse the taskresponse
 	 */
-	private void saveResponse(final ScriptContext context){
-		
-		final String varName = "%s__%s";
-		final String resCode = String.format(varName, this._name, RESPONSE_CODE);
-		context.setAttribute(resCode, _taskResponse.getResponseCode(), ScriptContext.ENGINE_SCOPE);
-		final String resDesc = String.format(varName, this._name, RESPONSE_DESCRIPTION);
-		context.setAttribute(resDesc, _taskResponse.getResponseDescription(), ScriptContext.ENGINE_SCOPE);
-		
-		final ParameterArray parameterArray = _taskResponse.getParameters();
-		if(parameterArray != null){
+	private void saveResponse(final ScriptContext context, final String responseCode,
+			final String responseDescription, final Object codeValue, final String descriptionValue,final TaskResponseType taskresponse) {
 
-			final Map<String, String> response = createMap(parameterArray);
-			final Set<String> keys =  _outputData.keySet();
-			for(String to: keys){
-				final DataParameter from = _outputData.get(to);
-				final String contextValue = response.get(from.getExpression());
-				if(contextValue != null){
-					LOGGER.info("Saving output to context from: "+from.getExpression()+" to: "+to+" value: "+ contextValue +" " + _name);
-					context.setAttribute(to, contextValue, ScriptContext.ENGINE_SCOPE);
+		final String varName = "%s__%s";
+		final String resCode = String.format(varName, this._name, responseCode);
+		context.setAttribute(resCode, codeValue, ScriptContext.ENGINE_SCOPE);
+		final String resDesc = String.format(varName, this._name, responseDescription);
+		context.setAttribute(resDesc, descriptionValue, ScriptContext.ENGINE_SCOPE);
+
+		if(taskresponse != null){
+			final ParameterArray parameterArray = taskresponse.getParameters();
+			if (parameterArray != null) {
+
+				final Map<String, String> response = createMap(parameterArray);
+				final Set<String> keys = _outputData.keySet();
+				for (String to : keys) {
+					final DataParameter from = _outputData.get(to);
+					final String contextValue = response.get(from.getExpression());
+					if (contextValue != null) {
+						context.setAttribute(to, contextValue, ScriptContext.ENGINE_SCOPE);
+					}
+
 				}
-		
+
 			}
-			
 		}
+
 	}
 	
 	
@@ -237,6 +270,8 @@ public class ServiceTask extends AbstractElement {
 		
 		for(ParameterType param : parameterArray.getParameter()){
 			map.put(param.getName(), param.getValue());
+			LOGGER.info("Printing parameters ServiceTask name: " + param.getName() + " value: " + param.getValue());
+
 		}
 		
 		return map;
@@ -285,25 +320,6 @@ public class ServiceTask extends AbstractElement {
 		return _outputData;
 	}
 
-
-	/**
-	 * Gets the task response.
-	 *
-	 * @return the taskResponse
-	 */
-	public TaskResponseType getTaskResponse() {
-		return _taskResponse;
-	}
-
-	/**
-	 * Sets the task response.
-	 *
-	 * @param taskResponse the taskResponse to set
-	 */
-	public void setTaskResponse(final TaskResponseType taskResponse) {
-		this._taskResponse = taskResponse;
-	}
-	
 	/**
 	 * Gets the _implementation name.
 	 * 

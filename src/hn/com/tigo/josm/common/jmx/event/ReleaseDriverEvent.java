@@ -18,7 +18,7 @@ public class ReleaseDriverEvent extends JOSMEvent implements Serializable  {
 	private static final long serialVersionUID = -4824979036761927018L;
 	
 	public ReleaseDriverEvent(){
-		super(MonitoringEventType.RELEASE_DRIVER);
+		super(MonitoringEventType.RELEASE_DRIVER, MXBeanType.DRIVER);
 	}
 
 }

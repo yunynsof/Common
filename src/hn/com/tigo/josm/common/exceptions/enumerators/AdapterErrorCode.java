@@ -22,7 +22,7 @@ public enum AdapterErrorCode {
 	OK(0, "Sucess"),
 
 	/** Constant that defines the code TIMEOUT_CONNECTION_ERROR. */
-	TIMEOUT_CONNECTION_ERROR(AdapterErrorCode.CONSTANT_ERROR_1, "Connection timeout"),
+	TIMEOUT_CONNECTION_ERROR(AdapterErrorCode.CONSTANT_ERROR_1, "Connection timeout on host %s driver %s"),
 
 	/** Constant that defines the code PARAMETERS_ERROR. */
 	PARAMETERS_ERROR(AdapterErrorCode.CONSTANT_ERROR_2, "Invalid parameters"),

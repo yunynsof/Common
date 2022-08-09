@@ -24,6 +24,9 @@ import org.apache.log4j.Logger;
  */
 public class ExecutionBlock extends AbstractElement {
 	
+	/** Attribute that determine a Constant of serialVersionUID. */
+	private static final long serialVersionUID = 1L;
+
 	/** This attribute contains an instance of log4j logger for  Engine.  */
 	private static final transient Logger LOGGER = Logger.getLogger(ExecutionBlock.class);
 
@@ -32,7 +35,7 @@ public class ExecutionBlock extends AbstractElement {
 
 	/** Attribute that determine _executableBlocks. */
 	private LinkedList<AbstractElement> _executionList;
-
+	
 	/**
 	 * Instantiates a new execution block.
 	 */
@@ -62,6 +65,13 @@ public class ExecutionBlock extends AbstractElement {
 			else {
 				success = (Boolean) engine.eval(_preConditions);
 				LOGGER.info("eval: " + success);
+				//_msgLogger.append(String.format(MSG_BASE, getType(), _name, _preConditions, success));
+				//_msgLogger.append(AdapterConstants.NEW_LINE);
+			}
+			
+			if(success == null){
+				throw new BPMNExecutionException(OrchestratorErrorCode.SCRIPT_TASK_ERROR.getError(),
+						"Invalid preconditions: " + toString());
 			}
 
 			if (success.booleanValue()) {

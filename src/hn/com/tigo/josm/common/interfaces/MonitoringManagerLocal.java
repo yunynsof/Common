@@ -38,6 +38,14 @@ public interface MonitoringManagerLocal {
 	 */
 	long getTPS(final String component, final String objectName);
 	
+	/**
+	 * Unregister from jmx.
+	 *
+	 * @param component the component
+	 * @param objectName the object name
+	 */
+	public void unregisterFromJMX(final String component, final String objectName); 
+	
 	
 	
 

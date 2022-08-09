@@ -8,6 +8,7 @@ package hn.com.tigo.josm.common.interfaces;
 import hn.com.tigo.josm.common.dto.MetaOrderRequest;
 import hn.com.tigo.josm.common.exceptions.GatewayException;
 import hn.com.tigo.josm.common.order.OrderResponse;
+import hn.com.tigo.josm.component.dto.JOSMResponse;
 
 import javax.ejb.Remote;
 
@@ -35,5 +36,14 @@ public interface GatewayRemote {
 	 *             Throws broker exception when broker's logic validations fail
 	 */
 	OrderResponse executeOrder(MetaOrderRequest gatewayRequest) throws GatewayException;
+	
+	/**
+	 * Method that compiles a bpmn xml string and returns weather it was successful or failed.
+	 *
+	 * @param productFamilyId the product family id
+	 * @param orderType the order type
+	 * @return the JOSM response
+	 */
+	JOSMResponse compileBpmn(final Long productFamilyId, final String orderType) throws GatewayException;
 
 }

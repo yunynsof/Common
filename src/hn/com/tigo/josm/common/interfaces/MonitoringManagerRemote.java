@@ -30,12 +30,21 @@ public interface MonitoringManagerRemote {
 	
 	
 	/**
-	 * Gets the tps.
+	 * Method responsible to gets the TPS information (Transactions per second)
 	 *
 	 * @param component the component
 	 * @param objectName the object name
 	 * @return the tps
 	 */
 	long getTPS(final String component, final String objectName);
+	
+	
+	/**
+	 * Method responsible to unregister from jmx the MBean.
+	 *
+	 * @param component the component
+	 * @param objectName the object name
+	 */
+	public void unregisterFromJMX(final String component, final String objectName); 
 
 }

@@ -1,38 +1,31 @@
 package hn.com.tigo.josm.common.interfaces;
 
 import hn.com.tigo.josm.common.dto.MetaOrderRequest;
+import hn.com.tigo.josm.common.exceptions.AdapterException;
 import hn.com.tigo.josm.common.exceptions.GatewayException;
-import hn.com.tigo.josm.common.locator.ServiceLocator;
-import hn.com.tigo.josm.common.locator.ServiceLocatorException;
+import hn.com.tigo.josm.common.interfaces.producer.InterfaceFactory;
 import hn.com.tigo.josm.common.order.OrderResponse;
 
-import org.apache.log4j.Logger;
 
 /**
- * The Class AbstractGatewayRequestExecutor.
- * 
- * @author Jhon Cortes <mailto:jcortesg@stefaninicolombia.com />
- * @version
- * @param <T>
- *            the generic type
- * @since 24-nov-2014 14:48:20 2014
+ * AbstractGatewayExecutorOrderResponse.
+ *
+ * @author Jhon Fredy Cortes Gaspar <mailto:jfgaspar@stefanini.com />
+ * @version 1.0
+ * @param <T> the generic type
+ * @param <W> the generic type
+ * @since 07-09-2015 07:07:24 PM 2015
  */
-public abstract class AbstractGatewayExecutorOrderResponse<T,W> {
-
-	/** Attribute that determine log. */
-	private static final transient Logger LOGGER = Logger.getLogger(AbstractGatewayExecutorOrderResponse.class);
-
-	/** The _jndi gateway. */
-	private static String _jndiGateway;
+public abstract class AbstractGatewayExecutorOrderResponse<T, W> {
 
 
 	/**
 	 * Instantiates a new abstract gateway request executor.
-	 *
-	 * @param jndiGateway the jndi gateway
+	 * 
+	 * @param jndiGateway
+	 *            the jndi gateway
 	 */
-	public AbstractGatewayExecutorOrderResponse(final String jndiGateway) {
-		_jndiGateway = jndiGateway;
+	public AbstractGatewayExecutorOrderResponse() {
 	}
 
 	
@@ -41,44 +34,35 @@ public abstract class AbstractGatewayExecutorOrderResponse<T,W> {
 	 *
 	 * @param request the request
 	 * @param proxyGenericRequest the proxy generic request
-	 * @return the response
+	 * @return the order response
+	 * @throws GatewayException the gateway exception
+	 * @throws AdapterException 
 	 */
-	public OrderResponse executeGateway(final W request, final T proxyGenericRequest) throws GatewayException {
+	public OrderResponse executeGateway(final W request, final T proxyGenericRequest) throws GatewayException, AdapterException {
 		return executeRequest(request, proxyGenericRequest);
 	}
 
-
 	/**
 	 * Execute request for Gateway by EJB service.
-	 * 
-	 * @param request
-	 *            the request is a http context to get the user and ip address
+	 *
+	 * @param request            the request is a http context to get the user and ip address
 	 *            as input parameters to build the metaOrderRequest.
-	 * @param proxyGenericRequest
-	 *            the proxy as400 request type
+	 * @param proxyGenericRequest            the proxy as400 request type
 	 * @return the response is an Http response, it could be Http 500 or 200.
+	 * @throws GatewayException the gateway exception
+	 * @throws AdapterException 
 	 */
 
-	private OrderResponse executeRequest(final W request, final T proxyGenericRequest)  throws GatewayException{
+	private OrderResponse executeRequest(final W request, final T proxyGenericRequest) throws GatewayException, AdapterException {
 
 		OrderResponse ordResponse = new OrderResponse();
 		final MetaOrderRequest metaOrderRequest = buildMetaOrderRequest(request, proxyGenericRequest);
-
-		try {
-
-			final ServiceLocator serviceLocator = ServiceLocator.getInstance();
-			final GatewayRemote gatewayRemote = serviceLocator.getService(_jndiGateway);
-			ordResponse = gatewayRemote.executeOrder(metaOrderRequest);
-
-		} catch (ServiceLocatorException e) {
-			LOGGER.error(e.getMessage().toString(), e);
-		}
+		final InterfaceFactory interfaceFactory = new InterfaceFactory();
+		final GatewayRemote gatewayRemote = interfaceFactory.getGatewayRemote();
+		ordResponse = gatewayRemote.executeOrder(metaOrderRequest);
 		return ordResponse;
 
 	}
-	
-	
-	
 
 	/**
 	 * Builds the meta order request for input parameter to Gateway request.
@@ -89,10 +73,8 @@ public abstract class AbstractGatewayExecutorOrderResponse<T,W> {
 	 * @param proxyGenericRequest
 	 *            the proxy as400 request type
 	 * @return the meta order request object to Gateway execution.
+	 * @throws AdapterException 
 	 */
-	public abstract MetaOrderRequest buildMetaOrderRequest(final W request,
-			final T proxyGenericRequest);
-	
+	public abstract MetaOrderRequest buildMetaOrderRequest(final W request, final T proxyGenericRequest) throws AdapterException;
 
-	
 }

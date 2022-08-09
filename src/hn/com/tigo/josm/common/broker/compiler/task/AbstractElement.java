@@ -7,6 +7,7 @@ package hn.com.tigo.josm.common.broker.compiler.task;
 
 import hn.com.tigo.josm.common.exceptions.BPMNExecutionException;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 
 import javax.script.ScriptEngine;
@@ -17,7 +18,10 @@ import javax.script.ScriptEngine;
  * @version 1.0
  * @since 
  */
-public abstract class AbstractElement implements Cloneable {
+public abstract class AbstractElement implements Cloneable, Serializable {
+
+	/** Attribute that determine a Constant of serialVersionUID. */
+	private static final long serialVersionUID = 1L;
 
 	/** Attribute that determine the _id field. */
 	protected String _id;
@@ -31,9 +35,11 @@ public abstract class AbstractElement implements Cloneable {
 	/** Attribute that determine the _compensation block field. */
 	protected AbstractElement _compensationBlock;
 	
-	
 	/** Attribute that determine loopCharacteristics. */
 	protected StandardLoopCharacteristics _loopCharacteristics;
+	
+	/** Attribute that determine _msgLogger. */
+	//protected StringBuilder _msgLogger = new StringBuilder();
 
 	/**
 	 * Execute.
@@ -142,8 +148,14 @@ public abstract class AbstractElement implements Cloneable {
 	public void setLoopCharacteristics(final StandardLoopCharacteristics loopCharacteristics) {
 		this._loopCharacteristics = loopCharacteristics;
 	}
-	
-	
 
+	/**
+	 * Method responsible to gets the message logger.
+	 *
+	 * @return the msg logger
+	 */
+//	public String getMsgLogger() {
+//		return _msgLogger.toString();
+//	}
 
 }

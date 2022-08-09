@@ -8,16 +8,29 @@ import hn.com.tigo.josm.common.adapter.dto.TaskResponseType;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * TaskRequestMapper.
+ *
+ * @author Jhon Fredy Cortes Gaspar <mailto:jfgaspar@stefanini.com />
+ * @version 1.0
+ * @since 08-11-2015 08:36:16 AM 2015
+ */
 public class TaskRequestMapper {
 	
 	/** Attribute that determine a Constant of RESPONSE_OK. */
 	private static final String RESPONSE_OK = "Operation successful.";
 	
-	public static Map<String, String> requestToMap(TaskRequestType taskType){
-		Map<String, String> map = new HashMap<String, String>();
+	/**
+	 * Request to map.
+	 *
+	 * @param taskType the task type
+	 * @return the map
+	 */
+	public static Map<String, String> requestToMap(final TaskRequestType taskType){
+		final Map<String, String> map = new HashMap<String, String>();
 		
 		if(taskType.isSetParameters()){
-			ParameterArray parameterArray = taskType.getParameters();
+			final ParameterArray parameterArray = taskType.getParameters();
 			for(ParameterType parameter : parameterArray.getParameter()){
 				map.put(parameter.getName(), parameter.getValue());
 			}

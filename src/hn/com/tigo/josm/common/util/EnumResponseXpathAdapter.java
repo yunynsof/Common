@@ -13,7 +13,10 @@ public enum EnumResponseXpathAdapter {
 	RESPONSE_SUCCESS(0, "Success"),
 
 	/** The RESPONS e_1. */
-	RESPONSE_NO_DATA(1, "No data");
+	RESPONSE_NO_DATA(1, "No data"),
+
+	/** The RESPONS e_1. */
+	RESPONSE_NO_RESPONSE(2, "There is not response tag");
 
 	/** The _key. */
 	private int _key;

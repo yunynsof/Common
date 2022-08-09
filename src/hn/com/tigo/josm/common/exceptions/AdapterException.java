@@ -23,7 +23,30 @@ public class AdapterException extends Exception {
 
 	/** Attribute that stores the _message. */
 	private String _message;
+	
+	/** Attribute that determine String. */
+	private String _platformError;
 
+	
+	/**
+	 * Instantiates a new adapter exception.
+	 *
+	 * @param errorCode the error code
+	 * @param message the message
+	 * @param platformError the platform error
+	 * @param cause the cause
+	 */
+	public AdapterException(final AdapterErrorCode errorCode, final String message, final String platformError, final Exception cause) {
+		super(errorCode.getMessage(), cause);
+		this._errorCode = errorCode.getError();
+		this._platformError = platformError;
+		if (message == null) {
+			this._message = errorCode.getMessage();
+		} else {
+			this._message = message;
+		}
+	}
+	
 	/**
 	 * Instantiates a new adapter exception.
 	 * 
@@ -34,8 +57,7 @@ public class AdapterException extends Exception {
 	 * @param cause
 	 *            the cause of the exception
 	 */
-	public AdapterException(final AdapterErrorCode errorCode,
-			final String message, final Exception cause) {
+	public AdapterException(final AdapterErrorCode errorCode, final String message, final Exception cause) {
 		super(errorCode.getMessage(), cause);
 		this._errorCode = errorCode.getError();
 		if (message == null) {
@@ -60,6 +82,12 @@ public class AdapterException extends Exception {
 	}
 	
 	
+	/**
+	 * Instantiates a new adapter exception.
+	 *
+	 * @param errorCode the error code
+	 * @param message the message
+	 */
 	public AdapterException(final int  errorCode,
 			final String message) {
 		this._errorCode = errorCode;
@@ -106,12 +134,30 @@ public class AdapterException extends Exception {
 
 	/**
 	 * Sets the message.
-	 * 
-	 * @param _message
-	 *            the _message to set
+	 *
+	 * @param message the new message
 	 */
 	public void setMessage(final String message) {
 		this._message = message;
 	}
 
+	/**
+	 * Gets the platform error.
+	 *
+	 * @return the platform error
+	 */
+	public String getPlatformError() {
+		return _platformError;
+	}
+
+	/**
+	 * Sets the platform error.
+	 *
+	 * @param platformError the new platform error
+	 */
+	public void setPlatformError(String platformError) {
+		this._platformError = platformError;
+	}
+
+	
 }

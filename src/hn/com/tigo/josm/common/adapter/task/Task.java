@@ -10,7 +10,6 @@ import hn.com.tigo.josm.common.adapter.dto.TaskResponseType;
 import hn.com.tigo.josm.common.exceptions.AdapterException;
 
 import javax.ejb.Remote;
-import javax.jws.WebParam;
 
 /**
  * Task.

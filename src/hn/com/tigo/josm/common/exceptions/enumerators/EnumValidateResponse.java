@@ -33,7 +33,7 @@ public enum EnumValidateResponse {
 	SCHEDULE(104, "Product not active in current date or hour."),
 	
 	/** PRODUCT_NO_EXISTS gateway's validation, code and message. */
-	PRODUCT_NOT_EXISTS(105, "Product not exists."),
+	PRODUCT_NOT_EXISTS(105, "Product %s not exists ."),
 	
 	/** Attribute that determine REMOTE_SERVICE_ERROR. */
 	REMOTE_SERVICE_ERROR(106, "Error acquiring remote instance service."),
@@ -51,7 +51,7 @@ public enum EnumValidateResponse {
 	JNDI_NAME_NOT_FOUND(110, "ServiceTask name {0} not found in the server runtime."),
 	
 	/** Attribute that determine AMBIGUOUS_JNDI_NAME. */
-	AMBIGUOUS_JNDI_NAME(111, "Found {0} coincidence's whit the ServiceTask name {1}."),
+	AMBIGUOUS_JNDI_NAME(111, "Found {0} coincidence's with the ServiceTask name {1}."),
 		
 	/** Attribute that determine ERROR_MBEAN_SERVER_LOOKUP. */
 	ERROR_MBEAN_SERVER_LOOKUP(112, "Error lookup MBeanServer {0}."),
@@ -59,12 +59,26 @@ public enum EnumValidateResponse {
 	/** FAILED gateway's validation,  code and message. */
 	GATEWAY_FAILED(113, "Gateway Validation Failed."),
 	
-	
 	/** Attribute that determine HANDLER_VALIDATION. */
 	HANDLER_VALIDATION(114, "Handler Validation."),
 	
+	/** The unhandled exception. */
+	UNHANDLED_EXCEPTION (115, "Unhendled exception."),
+
+	/** The gateway failed execution. */
+	GATEWAY_FAILED_EXECUTION(116, "Gateway execution is on going. Product %s. OrderType %s. SubscriberId %s."),
+	
+	/** The transaction exception. */
+	TRANSACTION_ROLLBACK_EXCEPTION (117, "Transaction RollBack exception."),
+	
+	/** Attribute that determine CHANNEL_NOT_EXIST. */
+	CHANNEL_NOT_EXIST (118, "The channel id not exist."),
+
 	/** Unhandled Error,  code and message. */
-	UNHANDLED_ERROR(999, "Unhandled Error: {0}.");
+	UNHANDLED_ERROR(999, "Unhandled Error: {0}."),
+	
+	/** The product is invalid*/
+	PRODUCT_INVALID(119,"The product %s with order type %s is invalid");
 
 	/** Attribute that contains enum code. */
 	private int code;

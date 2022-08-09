@@ -19,10 +19,10 @@ public enum OrchestratorErrorCode {
 	
 	
 	/** The bpmn script required. */
-	BPMN_SCRIPT_REQUIRED(401, "Script is required in ScriptTask  %s." ),
+	BPMN_SCRIPT_REQUIRED(401, "Script is required in Task :  %s." ),
 	
 	/** The bpmn script invalid. */
-	BPMN_SCRIPT_INVALID(402, "Invalid script in ScriptTask  %s." ),
+	BPMN_SCRIPT_INVALID(402, "Invalid script in Task : %s." ),
 	
 	/** The bpmn cyclic flow. */
 	BPMN_CYCLIC_FLOW(403, "Cyclic flow detected at %s." ),
@@ -64,9 +64,14 @@ public enum OrchestratorErrorCode {
 	INTERRUPT_DEBUG(415, "The debugger has been interrupted."),
 
 	/** Attribute that determine the bpmn error field. */
-	SCRIPT_TASK_ERROR(416, "JavaScript execution error.");
-
+	SCRIPT_TASK_ERROR(416, "JavaScript execution error."),
 	
+	/** Attribute that determine END_EVENT_ERROR. */
+	END_EVENT_ERROR(417, "End Event Error."),
+
+	/** The compensation error. */
+	COMPENSATION_ERROR(418, "Bad compensation association in task: <%s> with boundary id: <%s>.");
+
 	/** Attribute that stores _error. */
 	private int _error;
 

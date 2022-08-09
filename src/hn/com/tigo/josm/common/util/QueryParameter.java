@@ -30,6 +30,7 @@ public class QueryParameter {
 	/** The Constant QUERY_PARAM_PRODUCT_FAMILY_ID. */
 	public static final String QUERY_PARAM_PRODUCT_FAMILY_ID = "productFamilyId";
 
+	/** The Constant QUERY_PARAM_PLATFORM_ID. */
 	public static final String QUERY_PARAM_PLATFORM_ID = "platformId";
 
 	/** The Constant QUERY_PARAM_ORDER_TYPE. */
@@ -65,6 +66,7 @@ public class QueryParameter {
 	/** Attribute that determine a Constant of QUERY_FIND_BY_SUBSCRIBER_PROFILE. */
 	public static final String QUERY_FIND_BY_SUBSCRIBER_PROFILE = "SubscriberProfile.findBySubscriberProfile";
 
+	/** The Constant QUERY_FIND_BY_SUBSCRIBER_PROFILE_BY_DATE. */
 	public static final String QUERY_FIND_BY_SUBSCRIBER_PROFILE_BY_DATE = "SubscriberProfile.findBySubscriberProfileDateFrom";
 	
 	/** Attribute that determine a constant with the name of the query for the subscribers subscriptions. */
@@ -79,7 +81,10 @@ public class QueryParameter {
 	/** Attribute that determine a Constant of QUERY_MESSAGE_BUNDLE_FIND_BY_PRODUCT_ERROR_CODE. */
 	public static final String QUERY_MESSAGE_BUNDLE_FIND_BY_PRODUCT_ERROR_CODE = "MessageBundle.findByProductAndErrorCode";
 	
+	/** The Constant QUERY_RULE_BASE_FIND_ALL. */
 	public static final String QUERY_RULE_BASE_FIND_ALL = "RuleBase.findAll";
+	
+	/** The Constant QUERY_RULE_FIND_ALL. */
 	public static final String QUERY_RULE_FIND_ALL = "Rule.findAll";
 	
 

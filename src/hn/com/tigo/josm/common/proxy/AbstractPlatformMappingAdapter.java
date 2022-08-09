@@ -5,7 +5,10 @@ import hn.com.tigo.josm.common.adapter.dto.TaskRequestType;
 import hn.com.tigo.josm.common.adapter.dto.TaskResponseType;
 import hn.com.tigo.josm.common.adapter.task.Task;
 import hn.com.tigo.josm.common.exceptions.AdapterException;
+import hn.com.tigo.josm.common.exceptions.enumerators.AdapterErrorCode;
 import hn.com.tigo.josm.common.interfaces.producer.InterfaceFactory;
+import hn.com.tigo.josm.common.locator.ServiceLocator;
+import hn.com.tigo.josm.common.locator.ServiceLocatorException;
 import hn.com.tigo.josm.common.util.ProxyUtil;
 
 import javax.ws.rs.core.Response;
@@ -26,16 +29,11 @@ public abstract class AbstractPlatformMappingAdapter<S> {
 	/** Attribute which determine the Constant of the class log. */
 	private static final Logger LOGGER = Logger.getLogger(AbstractPlatformMappingAdapter.class);
 
-	
 	/** The _proxy  request type. */
 	protected S _proxyRequestType;
 
 	/** The _task response type. */
 	protected TaskResponseType _taskResponseType;
-
-
-	
-	
 
 	/**
 	 * Instantiates a new platform mapping adapter manager.
@@ -55,16 +53,20 @@ public abstract class AbstractPlatformMappingAdapter<S> {
 	 *            the proxy general request type is an object with Proxygeneral xml
 	 *            resquest values.
 	 * @return the response
+	 * @throws AdapterException 
 	 */
-	public Response execute(final S proxyRequestType) {
-
-		_proxyRequestType = proxyRequestType;
+	public Response execute(final S proxyRequestType) throws AdapterException {
 
 		Response currentResponse = ProxyUtil.createResponse(ProxyConstants.RESPONSE_CODE_ERROR,
 				"Failed to get Platform Mapping Attributes");
-
-		final TaskRequestType taskRequestType = buildTaskRequestType();
-		currentResponse = getPlatformMappingValues(taskRequestType);
+		_proxyRequestType = proxyRequestType;
+		try {
+			final TaskRequestType taskRequestType = buildTaskRequestType();
+			currentResponse = getPlatformMappingValues(taskRequestType);
+		} catch (ServiceLocatorException e) {
+			LOGGER.error(e.getMessage().toString(), e);
+			throw new AdapterException(AdapterErrorCode.SERVICE_NOT_FOUND,e.getMessage());
+		}
 
 		return currentResponse;
 
@@ -78,8 +80,10 @@ public abstract class AbstractPlatformMappingAdapter<S> {
 	 *
 	 * @param taskRequestType the task request type
 	 * @return the product equivalence value is the platform product id.
+	 * @throws ServiceLocatorException 
+	 * @throws AdapterException 
 	 */
-	private Response getPlatformMappingValues(final TaskRequestType taskRequestType) {
+	private Response getPlatformMappingValues(final TaskRequestType taskRequestType) throws ServiceLocatorException, AdapterException {
 
 		Response currentResponse = ProxyUtil.createResponse(ProxyConstants.RESPONSE_CODE_ERROR,
 				"Failed to get mapping values");
@@ -88,10 +92,10 @@ public abstract class AbstractPlatformMappingAdapter<S> {
 		
 		LOGGER.info("Init  getPlatformMappingValues");
 		
-		final InterfaceFactory ifactory = new InterfaceFactory();
-		final Task productPlatformMapping = ifactory.getPlatformMappingAdapter();
+		final ServiceLocator serviceLocator = ServiceLocator.getInstance();
+		final Task productPlatformMapping = serviceLocator.getService(InterfaceFactory.PLATFORM_MAPPING_ADAPTER_REMOTE);
+		
 		if (productPlatformMapping != null) {
-			try {
 				final TaskResponseType taskResponseType = productPlatformMapping
 						.executeTask(taskRequestType);
 				if (ProxyConstants.RESPONSE_CODE_OK_ADAPTER.equals(String.valueOf(taskResponseType
@@ -100,9 +104,7 @@ public abstract class AbstractPlatformMappingAdapter<S> {
 					buildTaskResponseType();
 					currentResponse = ProxyConstants.OK_RESPONSE;
 				}
-			} catch (AdapterException ex) {
-				LOGGER.error(ex.getMessage().toString(), ex);
-			}
+			
 		}
 		LOGGER.info("End  getPlatformMappingValues");
 
